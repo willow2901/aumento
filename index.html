@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Aumento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #0f172a; color: white; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .progress-ring { transition: stroke-dashoffset 0.5s ease; transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .btn-active:active { transform: scale(0.95); transition: 0.1s; }
+        .page { display: none; }
+        .page.active { display: block; }
+        
+        /* Camera Square Overlay */
+        .viewport-overlay {
+            box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.75);
+            border: 2px solid #10b981;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased pb-24">
+
+    <header class="p-6 pt-12 flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-black tracking-tight text-emerald-400 italic">AUMENTO</h1>
+            <p id="today-date" class="text-slate-400 text-sm italic uppercase tracking-widest font-bold"></p>
+        </div>
+        <button onclick="toggleSettings()" class="p-2 rounded-full glass btn-active">
+            <i data-lucide="settings" class="w-6 h-6 text-white"></i>
+        </button>
+    </header>
+
+    <main id="dashboard-page" class="page active px-6 space-y-8 text-center">
+        <div class="relative flex items-center justify-center py-4">
+            <svg class="w-56 h-56">
+                <circle class="text-slate-800" stroke-width="12" stroke="currentColor" fill="transparent" r="90" cx="112" cy="112" />
+                <circle id="calorie-ring" class="text-emerald-500 progress-ring" stroke-width="12" stroke-dasharray="565" stroke-dashoffset="565" stroke-linecap="round" stroke="currentColor" fill="transparent" r="90" cx="112" cy="112" />
+            </svg>
+            <div class="absolute">
+                <span class="block text-5xl font-black tracking-tighter" id="current-cal">0</span>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]" id="goal-display">/ 2800 KCAL</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 text-left">
+            <div class="glass p-5 rounded-[2rem] border-blue-500/10">
+                <div class="flex items-center gap-2 mb-1 text-blue-400">
+                    <i data-lucide="droplet" class="w-4 h-4"></i>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-blue-400/70">Hydration</span>
+                </div>
+                <p class="text-2xl font-black text-white"><span id="water-count">0</span><span class="text-sm font-medium text-slate-500"> / 4</span></p>
+                <p class="text-[10px] text-slate-500 font-bold" id="bottle-size-label">32oz bottles</p>
+            </div>
+            <div class="glass p-5 rounded-[2rem] border-orange-500/10">
+                <div class="flex items-center gap-2 mb-1 text-orange-400">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-orange-400/70">Protein</span>
+                </div>
+                <p class="text-2xl font-black text-white"><span id="protein-count">0</span><span class="text-sm font-medium text-slate-500"> / 100g</span></p>
+                <p class="text-[10px] text-slate-500 font-bold uppercase">Daily Goal</p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <button onclick="openLogChoice()" class="w-full bg-emerald-500 text-slate-950 font-black text-lg py-5 rounded-3xl shadow-xl shadow-emerald-900/20 btn-active uppercase italic tracking-tighter">
+                Log Real Meal
+            </button>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="manualLog('shake')" class="glass py-5 rounded-3xl flex flex-col items-center gap-2 btn-active">
+                    <i data-lucide="cup-soda" class="w-6 h-6 text-orange-400"></i>
+                    <span class="text-[10px] font-black uppercase tracking-widest">Log Shake</span>
+                </button>
+                <button onclick="confirmWater()" class="glass py-5 rounded-3xl flex flex-col items-center gap-2 btn-active">
+                    <i data-lucide="droplets" class="w-6 h-6 text-blue-400"></i>
+                    <span class="text-[10px] font-black uppercase tracking-widest">Log Water</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <main id="progress-page" class="page px-6 space-y-8">
+        <h2 class="text-xl font-black italic text-emerald-400 uppercase tracking-widest">Growth History</h2>
+        <div class="glass p-8 rounded-[2rem] text-center space-y-4 border-emerald-500/10">
+            <div class="p-4 bg-emerald-500/10 rounded-full w-16 h-16 mx-auto flex items-center justify-center text-emerald-500">
+                <i data-lucide="trending-up"></i>
+            </div>
+            <p class="text-slate-400 text-sm font-medium">Progress charts and detailed weight history will be built in Sprint 3.</p>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 p-6 z-40">
+        <div class="glass max-w-xs mx-auto rounded-full flex justify-around p-2 border-white/20">
+            <button onclick="showPage('dashboard')" id="nav-dashboard" class="p-3 rounded-full bg-emerald-500 text-slate-950">
+                <i data-lucide="home" class="w-6 h-6"></i>
+            </button>
+            <button onclick="showPage('progress')" id="nav-progress" class="p-3 rounded-full text-slate-400">
+                <i data-lucide="bar-chart-2" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div id="log-choice-modal" class="hidden fixed inset-0 z-[60] flex items-end p-6 bg-slate-950/80 backdrop-blur-sm">
+        <div class="glass w-full rounded-[3rem] p-8 space-y-4">
+            <h3 class="text-center font-black text-slate-400 text-[10px] uppercase tracking-[0.2em] mb-2">Select Method</h3>
+            <button onclick="startCamera()" class="w-full bg-white text-black font-black py-5 rounded-2xl flex items-center justify-center gap-3 btn-active uppercase tracking-tight">
+                <i data-lucide="camera" class="w-6 h-6"></i> AI Vision Scan
+            </button>
+            <button onclick="openManualEntry()" class="w-full bg-slate-800 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 btn-active uppercase tracking-tight">
+                <i data-lucide="edit-3" class="w-6 h-6 text-emerald-400"></i> Manual Entry
+            </button>
+            <button onclick="closeModals()" class="w-full py-4 text-slate-500 font-bold uppercase text-[10px] tracking-widest">Cancel</button>
+        </div>
+    </div>
+
+    <div id="camera-viewport" class="hidden fixed inset-0 z-[100] bg-black">
+        <video id="video" class="w-full h-full object-cover" autoplay playsinline></video>
+		<canvas id="canvas" class="hidden"></canvas>
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div class="w-72 h-72 viewport-overlay rounded-[2.5rem]"></div>
+        </div>
+        <div class="absolute bottom-12 left-0 right-0 flex justify-around items-center px-10">
+            <button onclick="stopCamera()" class="text-white bg-slate-900/50 p-4 rounded-full glass"><i data-lucide="x"></i></button>
+            <button onclick="captureImage()" class="w-20 h-20 bg-white rounded-full border-4 border-emerald-500 btn-active shadow-2xl"></button>
+            <div class="w-12 h-12"></div>
+        </div>
+    </div>
+
+    <div id="manual-entry-modal" class="hidden fixed inset-0 z-[70] bg-slate-950 p-6 flex items-center justify-center">
+        <div class="glass w-full max-w-sm p-8 rounded-[3rem] space-y-6">
+            <h2 class="text-2xl font-black italic text-emerald-400 tracking-tighter uppercase text-center">New Log</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Food Name</label>
+                    <input id="food-name" type="text" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl mt-1 outline-none text-white focus:border-emerald-500" placeholder="e.g. Grilled Chicken">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Calories</label>
+                        <input id="food-cal" type="number" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl mt-1 outline-none text-white focus:border-emerald-500" placeholder="0">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Protein (g)</label>
+                        <input id="food-prot" type="number" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl mt-1 outline-none text-white focus:border-emerald-500" placeholder="0">
+                    </div>
+                </div>
+            </div>
+            <button onclick="submitManualEntry()" class="w-full bg-emerald-500 text-slate-950 font-black py-5 rounded-3xl btn-active uppercase italic shadow-lg">Save Log</button>
+            <button onclick="closeModals()" class="w-full text-slate-500 font-bold py-2 uppercase tracking-widest text-[10px] text-center">Cancel</button>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="hidden fixed inset-0 z-50 p-6 flex items-center justify-center bg-slate-950/95 backdrop-blur-xl">
+        <div class="glass w-full max-w-sm p-8 rounded-[3rem] space-y-6 max-h-[90vh] overflow-y-auto text-center">
+            <h2 class="text-2xl font-black text-emerald-400 italic tracking-tighter uppercase">Settings</h2>
+            <div class="space-y-5 text-left">
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Calorie Goal</label>
+                        <input id="set-goal" type="number" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl mt-1 outline-none text-white focus:border-emerald-500/50" placeholder="2800">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Bottle Size (oz)</label>
+                        <input id="set-bottle" type="number" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl mt-1 outline-none text-white focus:border-blue-500/50" placeholder="32">
+                    </div>
+                </div>
+                <div class="pt-5 border-t border-white/10">
+                    <label class="text-[10px] font-black uppercase text-emerald-500 tracking-widest ml-2">Weekly Weight Log</label>
+                    <div class="flex gap-3 mt-1">
+                        <input id="set-weight" type="number" class="w-2/3 bg-white/5 border border-white/10 p-4 rounded-2xl outline-none text-white focus:border-emerald-500/50" placeholder="Lbs">
+                        <button onclick="saveWeight()" class="w-1/3 bg-emerald-500 text-slate-950 rounded-2xl font-black text-xs uppercase tracking-tighter btn-active">Log</button>
+                    </div>
+                </div>
+            </div>
+            <div class="pt-2 space-y-3">
+                <button onclick="saveSettings()" class="w-full bg-white text-black font-black py-4 rounded-2xl btn-active uppercase text-sm tracking-widest">Update Settings</button>
+                <button onclick="resetDaily()" class="w-full bg-red-500/5 text-red-500 font-bold py-3 rounded-2xl text-[10px] uppercase tracking-widest border border-red-500/10">Reset Day</button>
+                <button onclick="toggleSettings()" class="w-full text-slate-500 font-bold py-2 text-sm uppercase tracking-widest">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    lucide.createIcons();
+    document.getElementById('today-date').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+    let state = {
+        calories: parseInt(localStorage.getItem('calories')) || 0,
+        protein: parseInt(localStorage.getItem('protein')) || 0,
+        water: parseInt(localStorage.getItem('water')) || 0,
+        goal: parseInt(localStorage.getItem('goal')) || 2800,
+        bottleSize: parseInt(localStorage.getItem('bottleSize')) || 32,
+        weightHistory: JSON.parse(localStorage.getItem('weightHistory')) || []
+    };
+
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId + '-page').classList.add('active');
+        const dashNav = document.getElementById('nav-dashboard');
+        const progNav = document.getElementById('nav-progress');
+        if (pageId === 'dashboard') {
+            dashNav.className = 'p-3 rounded-full bg-emerald-500 text-slate-950';
+            progNav.className = 'p-3 rounded-full text-slate-400';
+        } else {
+            dashNav.className = 'p-3 rounded-full text-slate-400';
+            progNav.className = 'p-3 rounded-full bg-emerald-500 text-slate-950';
+        }
+    }
+
+    // Modal Control Logic
+    function openLogChoice() { document.getElementById('log-choice-modal').classList.remove('hidden'); }
+    function closeModals() {
+        document.querySelectorAll('#log-choice-modal, #manual-entry-modal, #settings-modal').forEach(m => m.classList.add('hidden'));
+    }
+    function openManualEntry() {
+        closeModals();
+        document.getElementById('manual-entry-modal').classList.remove('hidden');
+    }
+
+    function submitManualEntry() {
+        const c = document.getElementById('food-cal').value;
+        const p = document.getElementById('food-prot').value;
+        if(c) state.calories += parseInt(c);
+        if(p) state.protein += parseInt(p);
+        // Clear inputs for next time
+        document.getElementById('food-name').value = '';
+        document.getElementById('food-cal').value = '';
+        document.getElementById('food-prot').value = '';
+        closeModals();
+        updateUI();
+    }
+
+    // Camera Logic
+    let stream = null;
+    async function startCamera() {
+        closeModals();
+        document.getElementById('camera-viewport').classList.remove('hidden');
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+            document.getElementById('video').srcObject = stream;
+        } catch (e) {
+            alert("Camera Access Required.");
+            stopCamera();
+        }
+    }
+    function stopCamera() {
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        document.getElementById('camera-viewport').classList.add('hidden');
+    }
+    function captureImage() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+
+    // Set canvas to a square for the AI
+    canvas.width = 500;
+    canvas.height = 500;
+
+    // Draw the center of the video feed into the square canvas
+    context.drawImage(video, 0, 0, 500, 500);
+
+    alert("Photo captured securely! Ready for AI analysis.");
+    stopCamera();
+}
+
+    function updateUI() {
+        document.getElementById('current-cal').innerText = state.calories.toLocaleString();
+        document.getElementById('goal-display').innerText = `/ ${state.goal} KCAL`;
+        document.getElementById('protein-count').innerText = state.protein;
+        document.getElementById('water-count').innerText = state.water;
+        document.getElementById('bottle-size-label').innerText = state.bottleSize + 'oz bottles';
+        const ring = document.getElementById('calorie-ring');
+        const percent = Math.min((state.calories / state.goal) * 100, 100);
+        ring.style.strokeDashoffset = 565 - (565 * (percent / 100));
+
+        localStorage.setItem('calories', state.calories);
+        localStorage.setItem('protein', state.protein);
+        localStorage.setItem('water', state.water);
+        localStorage.setItem('goal', state.goal);
+        localStorage.setItem('bottleSize', state.bottleSize);
+        localStorage.setItem('weightHistory', JSON.stringify(state.weightHistory));
+    }
+
+    function toggleSettings() { document.getElementById('settings-modal').classList.toggle('hidden'); }
+    function saveSettings() {
+        const ng = document.getElementById('set-goal').value;
+        const nb = document.getElementById('set-bottle').value;
+        if(ng) state.goal = parseInt(ng);
+        if(nb) state.bottleSize = parseInt(nb);
+        toggleSettings(); updateUI();
+    }
+    function saveWeight() {
+        const wv = document.getElementById('set-weight').value;
+        if (!wv) return;
+        state.weightHistory.push({ weight: wv, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) });
+        document.getElementById('set-weight').value = '';
+        updateUI(); alert("Weight Saved!");
+    }
+    function confirmWater() { if (confirm("Log 1 full " + state.bottleSize + "oz bottle?")) { state.water++; updateUI(); } }
+    function manualLog(type) {
+    // If it's a shake, pre-fill with 1000, otherwise leave empty ""
+    const defaultCal = (type === 'shake') ? "1000" : "";
+    const defaultProt = (type === 'shake') ? "50" : "";
+
+    const cal = prompt("Enter " + type + " calories:", defaultCal);
+    const prot = prompt("Enter " + type + " protein (g):", defaultProt);
+
+    // Only update if the user didn't hit 'Cancel'
+    if (cal !== null && cal !== "") state.calories += parseInt(cal);
+    if (prot !== null && prot !== "") state.protein += parseInt(prot);
+    
+    updateUI();
+}
+    function resetDaily() {
+        if(confirm("Reset today's totals?")) { state.calories = 0; state.protein = 0; state.water = 0; updateUI(); toggleSettings(); }
+    }
+
+    updateUI();
+    </script>
+</body>
+</html>
