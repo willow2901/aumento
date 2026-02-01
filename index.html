@@ -270,11 +270,9 @@
 
 async function analyzeImage(imageData) {
     let API_KEY = localStorage.getItem('gemini_api_key');
-    // Using the v1beta endpoint for the 2.5 Flash model seen in your dashboard
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
-    // 1. Enhanced Prompt with "Not Food" instructions
-    const promptText = "Identify the object in this image. If it is NOT food, respond with {'food': 'not food', 'calories': 0, 'protein': 0}. If it IS food, estimate total calories and protein (g). Respond ONLY in JSON: {'food': 'name', 'calories': 0, 'protein': 0}";
+    const promptText = "Identify the object. If NOT food, respond {'food': 'not food', 'calories': 0, 'protein': 0}. If food, estimate calories/protein. Respond ONLY in JSON: {'food': 'name', 'calories': 0, 'protein': 0}";
 
     const requestBody = {
         contents: [{
@@ -294,20 +292,31 @@ async function analyzeImage(imageData) {
 
         const data = await response.json();
 
-        if (data.error) throw new Error(data.error.message);
-        if (!data.candidates || !data.candidates[0].content) throw new Error("AI couldn't see anything clearly. Try again.");
+        // Handle specific API Key errors from Google
+        if (data.error) {
+            if (data.error.message.includes("API key not valid")) {
+                localStorage.removeItem('gemini_api_key'); // Wipe the bad key
+                const newKey = prompt("The saved API Key is invalid. Please paste a valid key:");
+                if (newKey) {
+                    localStorage.setItem('gemini_api_key', newKey.trim());
+                    alert("Key updated! Please try the scan again.");
+                }
+                return;
+            }
+            throw new Error(data.error.message);
+        }
+
+        if (!data.candidates || !data.candidates[0].content) throw new Error("AI couldn't see anything clearly.");
 
         const responseText = data.candidates[0].content.parts[0].text;
         const cleanJson = responseText.replace(/```json|```/g, "").trim();
         const result = JSON.parse(cleanJson);
 
-        // 2. The "Not Food" Safety Check
         if (result.food.toLowerCase() === "not food") {
-            alert("Aumento AI: No food detected in this image. Please try again with a clear shot of your meal.");
-            return; // Stops the function here
+            alert("Aumento AI: No food detected. Try a clearer shot!");
+            return;
         }
 
-        // 3. Normal logging if it IS food
         const confirmLog = confirm(`Aumento AI sees: ${result.food}\n🔥 ${result.calories} kcal\n💪 ${result.protein}g Protein\n\nLog this?`);
         
         if (confirmLog) {
@@ -378,6 +387,7 @@ async function analyzeImage(imageData) {
     </script>
 </body>
 </html>
+
 
 
 
