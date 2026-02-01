@@ -23,6 +23,34 @@
 </head>
 <body class="font-sans antialiased pb-24">
 
+	<div id="onboarding-screen" class="hidden fixed inset-0 z-[200] bg-slate-950 flex flex-col p-8 justify-center items-center text-center">
+		<div class="w-full max-w-sm space-y-8">
+			<div class="space-y-2">
+				<h1 class="text-4xl font-black text-emerald-400 italic tracking-tighter">AUMENTO</h1>
+				<p class="text-slate-500 uppercase text-[10px] tracking-[0.3em] font-bold">Cloud Sync Setup</p>
+			</div>
+
+			<div class="glass p-8 rounded-[3rem] space-y-6 border-emerald-500/20">
+				<div class="space-y-4 text-left">
+					<div>
+						<label class="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Adafruit Username</label>
+						<input id="setup-user" type="text" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl mt-1 outline-none text-white focus:border-emerald-500" placeholder="Username">
+					</div>
+					<div>
+						<label class="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Adafruit IO Key</label>
+						<input id="setup-key" type="password" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl mt-1 outline-none text-white focus:border-emerald-500" placeholder="aio_abc123...">
+					</div>
+				</div>
+				
+				<button onclick="saveOnboarding()" class="w-full bg-emerald-500 text-slate-950 font-black py-5 rounded-3xl btn-active uppercase italic shadow-xl shadow-emerald-500/10">
+					Initialize Cloud
+				</button>
+			</div>
+			
+			<p class="text-[10px] text-slate-600 px-6 italic">Your credentials stay on this device and are only used to sync with your private Adafruit IO feeds.</p>
+		</div>
+	</div>
+
     <header class="p-6 pt-12 flex justify-between items-center">
         <div>
             <h1 class="text-3xl font-black tracking-tight text-emerald-400 italic">AUMENTO</h1>
@@ -208,6 +236,37 @@
             progNav.className = 'p-3 rounded-full bg-emerald-500 text-slate-950';
         }
     }
+	
+	// Check for onboarding on load
+	window.addEventListener('load', () => {
+		const user = localStorage.getItem('adafruit_user');
+		const key = localStorage.getItem('adafruit_key');
+		
+		if (!user || !key) {
+			document.getElementById('onboarding-screen').classList.remove('hidden');
+		}
+	});
+
+	function saveOnboarding() {
+		const user = document.getElementById('setup-user').value.trim();
+		const key = document.getElementById('setup-key').value.trim();
+
+		if (user && key) {
+			localStorage.setItem('adafruit_user', user);
+			localStorage.setItem('adafruit_key', key);
+			
+			// Add a nice "Success" feel
+			const btn = event.target;
+			btn.innerText = "Syncing...";
+			
+			setTimeout(() => {
+				document.getElementById('onboarding-screen').classList.add('hidden');
+				updateUI();
+			}, 1000);
+		} else {
+			alert("Please enter both your Username and IO Key.");
+		}
+	}
 
     // Modal Control Logic
     function openLogChoice() { document.getElementById('log-choice-modal').classList.remove('hidden'); }
@@ -322,12 +381,40 @@ async function analyzeImage(imageData) {
         if (confirmLog) {
             state.calories += result.calories;
             state.protein += result.protein;
+			
+			// NEW: Push to server!
+			syncToAdafruit('calories', state.calories);
+			syncToAdafruit('protein', state.protein);
+			
             updateUI();
         }
 
     } catch (error) {
         console.error("AI Error:", error);
         alert("Issue: " + error.message);
+    }
+}
+
+async function syncToAdafruit(feedName, value) {
+    const username = localStorage.getItem('adafruit_user');
+    const aioKey = localStorage.getItem('adafruit_key');
+    
+    if (!username || !aioKey) return; // Don't sync if keys aren't set
+
+    const url = `https://io.adafruit.com/api/v2/${username}/feeds/${feedName}/data`;
+
+    try {
+        await fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-AIO-Key': aioKey,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ value: value })
+        });
+        console.log(`Synced ${value} to ${feedName}`);
+    } catch (err) {
+        console.error("Sync failed:", err);
     }
 }
 
@@ -387,7 +474,3 @@ async function analyzeImage(imageData) {
     </script>
 </body>
 </html>
-
-
-
-
