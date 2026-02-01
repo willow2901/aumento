@@ -260,9 +260,80 @@
 
     // Draw the center of the video feed into the square canvas
     context.drawImage(video, 0, 0, 500, 500);
+	
+	// Convert to a format the AI understands (Base64)
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
-    alert("Photo captured securely! Ready for AI analysis.");
     stopCamera();
+	analyzeImage(imageData); // This sends it to the "Brain"
+}
+
+async function analyzeImage(imageData) {
+    // 1. Securely get the API Key from Local Storage
+    let API_KEY = localStorage.getItem('gemini_api_key');
+
+    if (!API_KEY || API_KEY === "null") {
+        API_KEY = prompt("Enter your Gemini API Key (stored locally on your device only):");
+        if (API_KEY) {
+            localStorage.setItem('gemini_api_key', API_KEY);
+        } else {
+            alert("API Key required for AI Vision.");
+            return;
+        }
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+
+    // 2. UI Feedback
+    alert("Analyzing your meal... this takes about 3-5 seconds.");
+
+    const promptText = "Identify the food in this image. Estimate total calories and total protein (g). Respond ONLY in this JSON format: {'food': 'name', 'calories': 0, 'protein': 0}";
+
+    const requestBody = {
+        contents: [{
+            parts: [
+                { text: promptText },
+                {
+                    inline_data: {
+                        mime_type: "image/jpeg",
+                        data: imageData.split(',')[1]
+                    }
+                }
+            ]
+        }]
+    };
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) throw new Error("Check your API Key or connection.");
+
+        const data = await response.json();
+        const responseText = data.candidates[0].content.parts[0].text;
+        
+        // 3. Parse JSON from AI response
+        const cleanJson = responseText.replace(/```json|```/g, "").trim();
+        const result = JSON.parse(cleanJson);
+
+        // 4. Verification Step
+        const confirmLog = confirm(`Aumento AI sees: ${result.food}\n🔥 ${result.calories} kcal\n💪 ${result.protein}g Protein\n\nLog this?`);
+        
+        if (confirmLog) {
+            state.calories += result.calories;
+            state.protein += result.protein;
+            updateUI();
+        }
+
+    } catch (error) {
+        console.error("AI Error:", error);
+        alert("Failed to reach Gemini. If you just entered your key, refresh and try again.");
+        // If it fails, clear the key so the user can re-enter it in case of a typo
+        localStorage.removeItem('gemini_api_key');
+    }
 }
 
     function updateUI() {
