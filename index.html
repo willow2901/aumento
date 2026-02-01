@@ -244,6 +244,8 @@
 		
 		if (!user || !key) {
 			document.getElementById('onboarding-screen').classList.remove('hidden');
+		} else {
+			syncAllData(); //Pull from cloud immediately
 		}
 	});
 
@@ -327,96 +329,123 @@
 	analyzeImage(imageData); // This sends it to the "Brain"
 }
 
-async function analyzeImage(imageData) {
-    let API_KEY = localStorage.getItem('gemini_api_key');
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+	async function analyzeImage(imageData) {
+		let API_KEY = localStorage.getItem('gemini_api_key');
+		const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
-    const promptText = "Identify the object. If NOT food, respond {'food': 'not food', 'calories': 0, 'protein': 0}. If food, estimate calories/protein. Respond ONLY in JSON: {'food': 'name', 'calories': 0, 'protein': 0}";
+		const promptText = "Identify the object. If NOT food, respond {'food': 'not food', 'calories': 0, 'protein': 0}. If food, estimate calories/protein. Respond ONLY in JSON: {'food': 'name', 'calories': 0, 'protein': 0}";
 
-    const requestBody = {
-        contents: [{
-            parts: [
-                { text: promptText },
-                { inline_data: { mime_type: "image/jpeg", data: imageData.split(',')[1] } }
-            ]
-        }]
-    };
+		const requestBody = {
+			contents: [{
+				parts: [
+					{ text: promptText },
+					{ inline_data: { mime_type: "image/jpeg", data: imageData.split(',')[1] } }
+				]
+			}]
+		};
 
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
+		try {
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(requestBody)
+			});
 
-        const data = await response.json();
+			const data = await response.json();
 
-        // Handle specific API Key errors from Google
-        if (data.error) {
-            if (data.error.message.includes("API key not valid")) {
-                localStorage.removeItem('gemini_api_key'); // Wipe the bad key
-                const newKey = prompt("The saved API Key is invalid. Please paste a valid key:");
-                if (newKey) {
-                    localStorage.setItem('gemini_api_key', newKey.trim());
-                    alert("Key updated! Please try the scan again.");
-                }
-                return;
-            }
-            throw new Error(data.error.message);
-        }
+			// Handle specific API Key errors from Google
+			if (data.error) {
+				if (data.error.message.includes("API key not valid")) {
+					localStorage.removeItem('gemini_api_key'); // Wipe the bad key
+					const newKey = prompt("The saved API Key is invalid. Please paste a valid key:");
+					if (newKey) {
+						localStorage.setItem('gemini_api_key', newKey.trim());
+						alert("Key updated! Please try the scan again.");
+					}
+					return;
+				}
+				throw new Error(data.error.message);
+			}
 
-        if (!data.candidates || !data.candidates[0].content) throw new Error("AI couldn't see anything clearly.");
+			if (!data.candidates || !data.candidates[0].content) throw new Error("AI couldn't see anything clearly.");
 
-        const responseText = data.candidates[0].content.parts[0].text;
-        const cleanJson = responseText.replace(/```json|```/g, "").trim();
-        const result = JSON.parse(cleanJson);
+			const responseText = data.candidates[0].content.parts[0].text;
+			const cleanJson = responseText.replace(/```json|```/g, "").trim();
+			const result = JSON.parse(cleanJson);
 
-        if (result.food.toLowerCase() === "not food") {
-            alert("Aumento AI: No food detected. Try a clearer shot!");
-            return;
-        }
+			if (result.food.toLowerCase() === "not food") {
+				alert("Aumento AI: No food detected. Try a clearer shot!");
+				return;
+			}
 
-        const confirmLog = confirm(`Aumento AI sees: ${result.food}\n🔥 ${result.calories} kcal\n💪 ${result.protein}g Protein\n\nLog this?`);
-        
-        if (confirmLog) {
-            state.calories += result.calories;
-            state.protein += result.protein;
+			const confirmLog = confirm(`Aumento AI sees: ${result.food}\n🔥 ${result.calories} kcal\n💪 ${result.protein}g Protein\n\nLog this?`);
 			
-			// NEW: Push to server!
-			syncToAdafruit('calories', state.calories);
-			syncToAdafruit('protein', state.protein);
-			
-            updateUI();
-        }
+			if (confirmLog) {
+				state.calories += result.calories;
+				state.protein += result.protein;
+				
+				// NEW: Push to server!
+				syncToAdafruit('calories', state.calories);
+				syncToAdafruit('protein', state.protein);
+				
+				updateUI();
+			}
 
-    } catch (error) {
-        console.error("AI Error:", error);
-        alert("Issue: " + error.message);
-    }
+		} catch (error) {
+			console.error("AI Error:", error);
+			alert("Issue: " + error.message);
+		}
+	}
+
+	async function syncToAdafruit(feedName, value) {
+		const username = localStorage.getItem('adafruit_user');
+		const aioKey = localStorage.getItem('adafruit_key');
+		
+		if (!username || !aioKey) return; // Don't sync if keys aren't set
+
+		const url = `https://io.adafruit.com/api/v2/${username}/feeds/${feedName}/data`;
+
+		try {
+			await fetch(url, {
+				method: 'POST',
+				headers: {
+					'X-AIO-Key': aioKey,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ value: value })
+			});
+			console.log(`Synced ${value} to ${feedName}`);
+		} catch (err) {
+			console.error("Sync failed:", err);
+		}
+	}
+	
+	async function fetchFromAdafruit(feedName) {
+		const user = localStorage.getItem('adafruit_user');
+		const key = localStorage.getItem('adafruit_key');
+		const url = `https://io.adafruit.com/api/v2/${user}/feeds/${feedName}/data/last`;
+
+		try {
+			const response = await fetch(url, {
+				headers: { 'X-AIO-Key': key }
+			});
+			const data = await response.json();
+			return data.value ? parseInt(data.value) : 0;
+		} catch (err) {
+			console.error(`Fetch error for ${feedName}:`, err);
+			return 0;
+		}
 }
 
-async function syncToAdafruit(feedName, value) {
-    const username = localStorage.getItem('adafruit_user');
-    const aioKey = localStorage.getItem('adafruit_key');
-    
-    if (!username || !aioKey) return; // Don't sync if keys aren't set
+	// Function to sync everything on startup
+	async function syncAllData() {
+		state.calories = await fetchFromAdafruit('calories');
+		state.protein = await fetchFromAdafruit('protein');
+		state.water = await fetchFromAdafruit('water');
+		updateUI();
+	}
 
-    const url = `https://io.adafruit.com/api/v2/${username}/feeds/${feedName}/data`;
 
-    try {
-        await fetch(url, {
-            method: 'POST',
-            headers: {
-                'X-AIO-Key': aioKey,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ value: value })
-        });
-        console.log(`Synced ${value} to ${feedName}`);
-    } catch (err) {
-        console.error("Sync failed:", err);
-    }
-}
 
     function updateUI() {
         document.getElementById('current-cal').innerText = state.calories.toLocaleString();
