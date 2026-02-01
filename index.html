@@ -269,36 +269,18 @@
 }
 
 async function analyzeImage(imageData) {
-    // 1. Securely get the API Key from Local Storage
     let API_KEY = localStorage.getItem('gemini_api_key');
-
-    if (!API_KEY || API_KEY === "null") {
-        API_KEY = prompt("Enter your Gemini API Key (stored locally on your device only):");
-        if (API_KEY) {
-            localStorage.setItem('gemini_api_key', API_KEY);
-        } else {
-            alert("API Key required for AI Vision.");
-            return;
-        }
-    }
-
+    // Using the v1beta endpoint for the 2.5 Flash model seen in your dashboard
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
-    // 2. UI Feedback
-    alert("Analyzing your meal... this takes about 3-5 seconds.");
-
-    const promptText = "Identify the food in this image. Estimate total calories and total protein (g). Respond ONLY in this JSON format: {'food': 'name', 'calories': 0, 'protein': 0}";
+    // 1. Enhanced Prompt with "Not Food" instructions
+    const promptText = "Identify the object in this image. If it is NOT food, respond with {'food': 'not food', 'calories': 0, 'protein': 0}. If it IS food, estimate total calories and protein (g). Respond ONLY in JSON: {'food': 'name', 'calories': 0, 'protein': 0}";
 
     const requestBody = {
         contents: [{
             parts: [
                 { text: promptText },
-                {
-                    inline_data: {
-                        mime_type: "image/jpeg",
-                        data: imageData.split(',')[1]
-                    }
-                }
+                { inline_data: { mime_type: "image/jpeg", data: imageData.split(',')[1] } }
             ]
         }]
     };
@@ -310,16 +292,22 @@ async function analyzeImage(imageData) {
             body: JSON.stringify(requestBody)
         });
 
-        if (!response.ok) throw new Error("Check your API Key or connection.");
-
         const data = await response.json();
+
+        if (data.error) throw new Error(data.error.message);
+        if (!data.candidates || !data.candidates[0].content) throw new Error("AI couldn't see anything clearly. Try again.");
+
         const responseText = data.candidates[0].content.parts[0].text;
-        
-        // 3. Parse JSON from AI response
         const cleanJson = responseText.replace(/```json|```/g, "").trim();
         const result = JSON.parse(cleanJson);
 
-        // 4. Verification Step
+        // 2. The "Not Food" Safety Check
+        if (result.food.toLowerCase() === "not food") {
+            alert("Aumento AI: No food detected in this image. Please try again with a clear shot of your meal.");
+            return; // Stops the function here
+        }
+
+        // 3. Normal logging if it IS food
         const confirmLog = confirm(`Aumento AI sees: ${result.food}\n🔥 ${result.calories} kcal\n💪 ${result.protein}g Protein\n\nLog this?`);
         
         if (confirmLog) {
@@ -330,9 +318,7 @@ async function analyzeImage(imageData) {
 
     } catch (error) {
         console.error("AI Error:", error);
-        alert("Failed to reach Gemini. If you just entered your key, refresh and try again.");
-        // If it fails, clear the key so the user can re-enter it in case of a typo
-        localStorage.removeItem('gemini_api_key');
+        alert("Issue: " + error.message);
     }
 }
 
@@ -392,5 +378,6 @@ async function analyzeImage(imageData) {
     </script>
 </body>
 </html>
+
 
 
