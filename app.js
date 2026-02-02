@@ -211,6 +211,16 @@ async function analyzeImage(img) {
     } catch(e) { alert("AI Vision Error"); }
 }
 
+function resetDaily() {
+    if(confirm("Reset today's totals?")) {
+        state.calories = 0; state.protein = 0; state.water = 0;
+        updateUI();
+        sendToAdafruit('calories', 0); sendToAdafruit('protein', 0); sendToAdafruit('water', 0);
+        toggleSettings();
+    }
+}
+
+
 // --- SETUP & CAMERA ---
 function saveOnboarding() {
     localStorage.setItem('adafruit_user', document.getElementById('setup-user').value.trim());
@@ -244,3 +254,4 @@ function captureImage() {
     stopCamera();
     analyzeImage(can.toDataURL('image/jpeg', 0.8));
 }
+
