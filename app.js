@@ -147,7 +147,28 @@ async function loadHistory() {
                         <div class="bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20"><span class="text-[10px] font-bold text-blue-400 uppercase">${day.water} Bottles</span></div>
                     </div>
                     <div class="space-y-2 mt-4">
-                        ${day.food.map(f => `<div class="flex justify-between items-center bg-white/[0.02] p-3 rounded-xl"><span class="text-xs font-medium text-slate-300">${f}</span><i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-500/50"></i></div>`).join('')}
+                        //${day.food.map(f => `<div class="flex justify-between items-center bg-white/[0.02] p-3 rounded-xl"><span class="text-xs font-medium text-slate-300">${f}</span><i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-500/50"></i></div>`).join('')}
+						
+						${day.food.map(f => {
+							// Split the string by the pipe |
+							const parts = f.split(' | ');
+							const name = parts[0];
+							const cals = parts[1] || "??";
+							const prot = parts[2] || "??";
+
+							return `
+								<div onclick="alert('${name}\\n\\nCalories: ${cals} kcal\\nProtein: ${prot}g')" 
+									 class="flex justify-between items-center bg-white/[0.02] p-3 rounded-xl active:bg-white/10 transition-colors cursor-pointer">
+									<span class="text-xs font-medium text-slate-300">${name}</span>
+									<div class="flex items-center gap-2">
+										<span class="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">Details</span>
+										<i data-lucide="chevron-right" class="w-3 h-3 text-slate-600"></i>
+									</div>
+								</div>
+							`;
+						}).join('')}
+						
+						
                     </div>
                 </div>
             `;
@@ -216,7 +237,11 @@ function manualLog(type) {
         updateUI();
         sendToAdafruit('calories', state.calories);
         sendToAdafruit('protein', state.protein);
-        sendToAdafruit('food-log', type === 'shake' ? "Mass Gainer Shake" : "Quick Log");
+		
+        //sendToAdafruit('food-log', type === 'shake' ? "Mass Gainer Shake" : "Quick Log");
+		// We save it with pipes | so we can split it later
+        const name = type === 'shake' ? "Mass Gainer Shake" : "Quick Log";
+        sendToAdafruit('food-log', `${name} | ${cal} | ${prt || 0}`);
     }
 }
 
@@ -229,7 +254,8 @@ function submitManualEntry() {
         updateUI();
         sendToAdafruit('calories', state.calories);
         sendToAdafruit('protein', state.protein);
-        sendToAdafruit('food-log', n);
+        //sendToAdafruit('food-log', n);
+		sendToAdafruit('food-log', `${n} | ${c} | ${p || 0}`);
     }
     closeModals();
 }
@@ -250,7 +276,8 @@ async function analyzeImage(img) {
             updateUI();
             sendToAdafruit('calories', state.calories);
             sendToAdafruit('protein', state.protein);
-            sendToAdafruit('food-log', r.food);
+            //sendToAdafruit('food-log', r.food);
+			sendToAdafruit('food-log', `${r.food} | ${r.calories} | ${r.protein}`);
         }
     } catch(e) { alert("AI Vision Error"); }
 }
