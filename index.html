@@ -6,6 +6,7 @@
     <title>Aumento</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #0f172a; color: white; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
@@ -99,6 +100,10 @@
         </button>
     </div>
     
+	<div class="glass p-4 rounded-[2rem] border border-emerald-500/10 mb-6">
+    <canvas id="weightChart" style="width:100%; height:200px;"></canvas>
+	</div>
+	
     <div id="history-container" class="space-y-6 pb-12">
         <p class="text-slate-500 text-sm italic text-center py-10">Tap refresh to load cloud data...</p>
     </div>
@@ -121,8 +126,13 @@
             <div class="space-y-4 text-left">
                 <label class="text-[10px] font-bold text-slate-500 uppercase ml-2">Daily Calorie Goal</label>
                 <input id="set-goal" type="number" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none border border-white/10" placeholder="2800">
+				
                 <label class="text-[10px] font-bold text-slate-500 uppercase ml-2">Bottle Size (oz)</label>
                 <input id="set-bottle" type="number" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none border border-white/10" placeholder="32">
+				
+				<label class="text-[10px] font-bold text-slate-500 uppercase ml-2">Weight Goal (lbs)</label>
+				<input id="set-weight-goal" type="number" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none border border-white/10" placeholder="185">
+				
             </div>
             <button onclick="saveSettings()" class="w-full bg-white text-black font-black py-4 rounded-2xl btn-active uppercase">Update Settings</button>
             <button onclick="resetDaily()" class="w-full text-red-500 font-bold py-2 uppercase text-[10px] tracking-widest">Reset Today</button>
