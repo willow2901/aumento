@@ -8,7 +8,8 @@ let state = {
     water: parseInt(localStorage.getItem('water')) || 0,
     goal: parseInt(localStorage.getItem('goal')) || 2800,
     bottleSize: parseInt(localStorage.getItem('bottleSize')) || 32,
-    currentWeight: localStorage.getItem('last_weight') || "--"
+    currentWeight: localStorage.getItem('last_weight') || "--",
+	weightGoal: localStorage.getItem('weight_goal') || 150
 };
 
 // --- ADAFRUIT CLOUD ENGINE ---
@@ -34,44 +35,94 @@ async function fetchHistory(feed) {
     return await res.json();
 }
 
-// --- UPDATED CALENDAR LOGIC (Robinhood Style) ---
+// --- THE GROWTH ENGINE (Graph + Cards) ---
 async function loadHistory() {
     const container = document.getElementById('history-container');
-    container.innerHTML = '<p class="text-emerald-500 text-center animate-pulse uppercase font-black text-xs">Accessing Cloud Feeds...</p>';
+    container.innerHTML = '<p class="text-emerald-400 text-center animate-pulse uppercase font-black text-[10px] tracking-widest py-10">Syncing with Cloud...</p>';
     
     try {
-        // Fetch all feeds to compile the daily summary
+        // 1. Fetch all data feeds
         const foodData = await fetchHistory('food-log');
         const calData = await fetchHistory('calories');
         const protData = await fetchHistory('protein');
         const waterData = await fetchHistory('water');
         const weightData = await fetchHistory('weight');
+        
+        // 2. Prepare the Line Graph
+        const graphLabels = [];
+        const graphPoints = [];
+        // We reverse the weight data so it goes from Oldest -> Newest (left to right)
+        [...weightData].reverse().forEach(entry => {
+            graphLabels.push(new Date(entry.created_at).toLocaleDateString('en-US', {month:'numeric', day:'numeric'}));
+            graphPoints.push(parseFloat(entry.value));
+        });
 
-        // Helper to group by local date string
+        const ctx = document.getElementById('weightChart').getContext('2d');
+        if(window.myChart) window.myChart.destroy(); // Clear old chart to prevent flickering
+        window.myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: graphLabels,
+                datasets: [{
+                    data: graphPoints,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#10b981'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { 
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#64748b', font: { size: 10 } },
+                        // This draws your "Goal" line
+                        afterDraw: (chart) => {
+                            const {ctx, scales: {y}} = chart;
+                            const yPos = y.getPixelForValue(state.weightGoal);
+                            ctx.save();
+                            ctx.strokeStyle = '#10b981';
+                            ctx.setLineDash([5, 5]);
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.moveTo(chart.chartArea.left, yPos);
+                            ctx.lineTo(chart.chartArea.right, yPos);
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    },
+                    x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } }
+                }
+            }
+        });
+
+        // 3. Grouping Logic for the Robinhood Cards
         const formatDate = (ts) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
         const days = {};
 
-        // 1. Process food items
         foodData.forEach(item => {
             const d = formatDate(item.created_at);
             if (!days[d]) days[d] = { food: [], cals: 0, prot: 0, water: 0, weight: "--" };
             days[d].food.push(item.value);
         });
 
-        // 2. Process daily totals (taking the last/highest value of the day)
         calData.forEach(item => { const d = formatDate(item.created_at); if(days[d]) days[d].cals = Math.max(days[d].cals, parseInt(item.value)); });
         protData.forEach(item => { const d = formatDate(item.created_at); if(days[d]) days[d].prot = Math.max(days[d].prot, parseInt(item.value)); });
         waterData.forEach(item => { const d = formatDate(item.created_at); if(days[d]) days[d].water = Math.max(days[d].water, parseInt(item.value)); });
         weightData.forEach(item => { const d = formatDate(item.created_at); if(days[d]) days[d].weight = item.value; });
 
-        container.innerHTML = ""; // Clear loader
-
+        // 4. Render the Cards
+        container.innerHTML = ""; 
         Object.keys(days).forEach(date => {
             const day = days[date];
             const dayCard = document.createElement('div');
             dayCard.className = "glass rounded-[2rem] overflow-hidden border border-white/5 mb-6";
-            
             dayCard.innerHTML = `
                 <div class="p-6 bg-white/5 border-b border-white/5 flex justify-between items-center">
                     <div>
@@ -83,35 +134,21 @@ async function loadHistory() {
                         <p class="text-sm font-black text-emerald-400">${day.weight} lbs</p>
                     </div>
                 </div>
-                
                 <div class="p-4 space-y-3">
                     <div class="flex gap-2">
-                        <div class="bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20">
-                            <span class="text-[10px] font-bold text-orange-400 uppercase">${day.prot}g Protein</span>
-                        </div>
-                        <div class="bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
-                            <span class="text-[10px] font-bold text-blue-400 uppercase">${day.water} Bottles</span>
-                        </div>
+                        <div class="bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20"><span class="text-[10px] font-bold text-orange-400 uppercase">${day.prot}g Protein</span></div>
+                        <div class="bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20"><span class="text-[10px] font-bold text-blue-400 uppercase">${day.water} Bottles</span></div>
                     </div>
-                    
                     <div class="space-y-2 mt-4">
-                        <p class="text-[10px] font-black text-slate-600 uppercase tracking-tighter ml-2">Logged Items</p>
-                        ${day.food.map(f => `
-                            <div class="flex justify-between items-center bg-white/[0.02] p-3 rounded-xl">
-                                <span class="text-xs font-medium text-slate-300">${f}</span>
-                                <i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-500/50"></i>
-                            </div>
-                        `).join('')}
+                        ${day.food.map(f => `<div class="flex justify-between items-center bg-white/[0.02] p-3 rounded-xl"><span class="text-xs font-medium text-slate-300">${f}</span><i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-500/50"></i></div>`).join('')}
                     </div>
                 </div>
             `;
             container.appendChild(dayCard);
         });
-        
-        lucide.createIcons(); // Re-render icons for new elements
+        lucide.createIcons();
     } catch (e) {
-        container.innerHTML = '<p class="text-red-500 text-xs text-center py-10">Sync Error. Check Adafruit feeds.</p>';
-        console.error(e);
+        container.innerHTML = '<p class="text-red-500 text-xs text-center py-10">Cloud Error. Check Feed Names.</p>';
     }
 }
 
@@ -211,15 +248,14 @@ async function analyzeImage(img) {
     } catch(e) { alert("AI Vision Error"); }
 }
 
-function resetDaily() {
-    if(confirm("Reset today's totals?")) {
-        state.calories = 0; state.protein = 0; state.water = 0;
-        updateUI();
-        sendToAdafruit('calories', 0); sendToAdafruit('protein', 0); sendToAdafruit('water', 0);
-        toggleSettings();
-    }
-}
-
+	function resetDaily() {
+		if(confirm("Reset today's totals?")) {
+			state.calories = 0; state.protein = 0; state.water = 0;
+			updateUI();
+			sendToAdafruit('calories', 0); sendToAdafruit('protein', 0); sendToAdafruit('water', 0);
+			toggleSettings();
+		}
+	}
 
 // --- SETUP & CAMERA ---
 function saveOnboarding() {
@@ -231,6 +267,12 @@ function saveOnboarding() {
 function saveSettings() {
     state.goal = parseInt(document.getElementById('set-goal').value) || state.goal;
     state.bottleSize = parseInt(document.getElementById('set-bottle').value) || state.bottleSize;
+	const wg = document.getElementById('set-weight-goal').value;
+    if(wg) {
+        state.weightGoal = wg;
+        localStorage.setItem('weight_goal', wg);
+        sendToAdafruit('weight-goal', wg);
+    }
     updateUI(); toggleSettings();
 }
 
@@ -254,4 +296,3 @@ function captureImage() {
     stopCamera();
     analyzeImage(can.toDataURL('image/jpeg', 0.8));
 }
-
