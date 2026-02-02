@@ -51,28 +51,46 @@ async function loadHistory() {
         // 2. Prepare the Line Graph
         const graphLabels = [];
         const graphPoints = [];
-        // We reverse the weight data so it goes from Oldest -> Newest (left to right)
+        const goalPoints = []; // New array for the target line
+
+        // Reverse weightData to show oldest to newest
         [...weightData].reverse().forEach(entry => {
             graphLabels.push(new Date(entry.created_at).toLocaleDateString('en-US', {month:'numeric', day:'numeric'}));
             graphPoints.push(parseFloat(entry.value));
+            goalPoints.push(parseFloat(state.weightGoal)); // Every point gets the goal value
         });
 
         const ctx = document.getElementById('weightChart').getContext('2d');
-        if(window.myChart) window.myChart.destroy(); // Clear old chart to prevent flickering
+        if(window.myChart) window.myChart.destroy(); 
+        
         window.myChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: graphLabels,
-                datasets: [{
-                    data: graphPoints,
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#10b981'
-                }]
+                datasets: [
+                    {
+                        // YOUR ACTUAL WEIGHT
+                        label: 'Weight',
+                        data: graphPoints,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4
+                    },
+                    {
+                        // YOUR GOAL LINE
+                        label: 'Goal',
+                        data: goalPoints,
+                        borderColor: 'rgba(255, 255, 255, 0.3)', // Subtle white/grey
+                        borderWidth: 2,
+                        borderDash: [5, 5], // Makes it a dashed line
+                        pointRadius: 0,     // Hides the dots on the goal line
+                        fill: false,
+                        tension: 0          // Keeps it perfectly straight
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -81,23 +99,12 @@ async function loadHistory() {
                 scales: {
                     y: { 
                         grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: '#64748b', font: { size: 10 } },
-                        // This draws your "Goal" line
-                        afterDraw: (chart) => {
-                            const {ctx, scales: {y}} = chart;
-                            const yPos = y.getPixelForValue(state.weightGoal);
-                            ctx.save();
-                            ctx.strokeStyle = '#10b981';
-                            ctx.setLineDash([5, 5]);
-                            ctx.lineWidth = 2;
-                            ctx.beginPath();
-                            ctx.moveTo(chart.chartArea.left, yPos);
-                            ctx.lineTo(chart.chartArea.right, yPos);
-                            ctx.stroke();
-                            ctx.restore();
-                        }
+                        ticks: { color: '#64748b', font: { size: 10 } }
                     },
-                    x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } }
+                    x: { 
+                        grid: { display: false }, 
+                        ticks: { color: '#64748b', font: { size: 10 } } 
+                    }
                 }
             }
         });
