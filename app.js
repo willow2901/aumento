@@ -34,49 +34,84 @@ async function fetchHistory(feed) {
     return await res.json();
 }
 
-// --- CALENDAR LOGIC (The New Part) ---
+// --- UPDATED CALENDAR LOGIC (Robinhood Style) ---
 async function loadHistory() {
     const container = document.getElementById('history-container');
     container.innerHTML = '<p class="text-emerald-500 text-center animate-pulse uppercase font-black text-xs">Accessing Cloud Feeds...</p>';
     
     try {
+        // Fetch all feeds to compile the daily summary
         const foodData = await fetchHistory('food-log');
-        
-        // Group data by Date
-        const groups = {};
+        const calData = await fetchHistory('calories');
+        const protData = await fetchHistory('protein');
+        const waterData = await fetchHistory('water');
+        const weightData = await fetchHistory('weight');
+
+        // Helper to group by local date string
+        const formatDate = (ts) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        const days = {};
+
+        // 1. Process food items
         foodData.forEach(item => {
-            const date = new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            if (!groups[date]) groups[date] = [];
-            groups[date].push(item.value);
+            const d = formatDate(item.created_at);
+            if (!days[d]) days[d] = { food: [], cals: 0, prot: 0, water: 0, weight: "--" };
+            days[d].food.push(item.value);
         });
+
+        // 2. Process daily totals (taking the last/highest value of the day)
+        calData.forEach(item => { const d = formatDate(item.created_at); if(days[d]) days[d].cals = Math.max(days[d].cals, parseInt(item.value)); });
+        protData.forEach(item => { const d = formatDate(item.created_at); if(days[d]) days[d].prot = Math.max(days[d].prot, parseInt(item.value)); });
+        waterData.forEach(item => { const d = formatDate(item.created_at); if(days[d]) days[d].water = Math.max(days[d].water, parseInt(item.value)); });
+        weightData.forEach(item => { const d = formatDate(item.created_at); if(days[d]) days[d].weight = item.value; });
 
         container.innerHTML = ""; // Clear loader
 
-        // Generate the Calendar-style UI
-        Object.keys(groups).forEach(date => {
-            const dateSection = document.createElement('div');
-            dateSection.className = "space-y-3";
+        Object.keys(days).forEach(date => {
+            const day = days[date];
+            const dayCard = document.createElement('div');
+            dayCard.className = "glass rounded-[2rem] overflow-hidden border border-white/5 mb-6";
             
-            let itemsHtml = groups[date].map(food => `
-                <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
-                    <span class="text-sm font-bold text-slate-200">${food}</span>
-                    <span class="text-[10px] font-black text-emerald-500 uppercase">Logged</span>
+            dayCard.innerHTML = `
+                <div class="p-6 bg-white/5 border-b border-white/5 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">${date}</p>
+                        <h3 class="text-xl font-black text-white italic">${day.cals} <span class="text-xs text-emerald-500">KCAL</span></h3>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] font-black text-slate-500 uppercase">Weight</p>
+                        <p class="text-sm font-black text-emerald-400">${day.weight} lbs</p>
+                    </div>
                 </div>
-            `).join('');
-
-            dateSection.innerHTML = `
-                <div class="flex items-center gap-4 mb-2">
-                    <div class="h-[1px] flex-1 bg-slate-800"></div>
-                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">${date}</span>
-                    <div class="h-[1px] flex-1 bg-slate-800"></div>
+                
+                <div class="p-4 space-y-3">
+                    <div class="flex gap-2">
+                        <div class="bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20">
+                            <span class="text-[10px] font-bold text-orange-400 uppercase">${day.prot}g Protein</span>
+                        </div>
+                        <div class="bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
+                            <span class="text-[10px] font-bold text-blue-400 uppercase">${day.water} Bottles</span>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2 mt-4">
+                        <p class="text-[10px] font-black text-slate-600 uppercase tracking-tighter ml-2">Logged Items</p>
+                        ${day.food.map(f => `
+                            <div class="flex justify-between items-center bg-white/[0.02] p-3 rounded-xl">
+                                <span class="text-xs font-medium text-slate-300">${f}</span>
+                                <i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-500/50"></i>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
-                <div class="space-y-2">${itemsHtml}</div>
             `;
-            container.appendChild(dateSection);
+            container.appendChild(dayCard);
         });
-
+        
+        lucide.createIcons(); // Re-render icons for new elements
     } catch (e) {
-        container.innerHTML = '<p class="text-red-500 text-xs text-center">Failed to load history.</p>';
+        container.innerHTML = '<p class="text-red-500 text-xs text-center py-10">Sync Error. Check Adafruit feeds.</p>';
+        console.error(e);
     }
 }
 
