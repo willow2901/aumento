@@ -16,15 +16,15 @@
         .viewport-overlay { box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.75); border: 2px solid #10b981; }
     </style>
 </head>
-<body class="font-sans antialiased pb-24">
+<body class="font-sans antialiased pb-24 text-white">
 
     <div id="onboarding-screen" class="hidden fixed inset-0 z-[200] bg-slate-950 flex flex-col p-8 justify-center items-center text-center">
         <div class="w-full max-w-sm space-y-8">
             <h1 class="text-4xl font-black text-emerald-400 italic tracking-tighter">AUMENTO</h1>
             <div class="glass p-8 rounded-[3rem] space-y-6">
                 <div class="space-y-4 text-left">
-                    <input id="setup-user" type="text" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white" placeholder="Adafruit Username">
-                    <input id="setup-key" type="password" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white" placeholder="Adafruit IO Key">
+                    <input id="setup-user" type="text" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white outline-none" placeholder="Adafruit Username">
+                    <input id="setup-key" type="password" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white outline-none" placeholder="Adafruit IO Key">
                 </div>
                 <button onclick="saveOnboarding()" class="w-full bg-emerald-500 text-slate-950 font-black py-5 rounded-3xl btn-active uppercase italic">Initialize Cloud</button>
             </div>
@@ -84,16 +84,22 @@
                     <span class="text-[10px] font-black uppercase tracking-widest">Log Water</span>
                 </button>
             </div>
+            <button onclick="logWeight()" class="w-full glass py-5 rounded-3xl flex items-center justify-center gap-3 btn-active border-emerald-500/10">
+                <i data-lucide="scale" class="w-5 h-5 text-emerald-400"></i>
+                <span class="text-[10px] font-black uppercase tracking-widest">Log Body Weight (lbs)</span>
+            </button>
         </div>
     </main>
 
     <main id="progress-page" class="page px-6 space-y-8">
         <h2 class="text-xl font-black italic text-emerald-400 uppercase tracking-widest">Growth History</h2>
-        <div class="glass p-8 rounded-[2rem] text-center space-y-4 border-emerald-500/10">
-            <div class="p-4 bg-emerald-500/10 rounded-full w-16 h-16 mx-auto flex items-center justify-center text-emerald-500">
-                <i data-lucide="trending-up"></i>
+        <div id="weight-history-list" class="space-y-4">
+            <div class="glass p-8 rounded-[2rem] text-center space-y-4 border-emerald-500/10">
+                <div class="p-4 bg-emerald-500/10 rounded-full w-16 h-16 mx-auto flex items-center justify-center text-emerald-500">
+                    <i data-lucide="trending-up"></i>
+                </div>
+                <p class="text-slate-400 text-sm font-medium">History feed coming in Sprint 3.</p>
             </div>
-            <p class="text-slate-400 text-sm font-medium">History feed coming in Sprint 3.</p>
         </div>
     </main>
 
@@ -112,16 +118,18 @@
         <div class="glass w-full max-w-sm p-8 rounded-[3rem] space-y-6 text-center">
             <h2 class="text-2xl font-black text-emerald-400 uppercase italic">Settings</h2>
             <div class="space-y-4 text-left">
-                <input id="set-goal" type="number" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none" placeholder="Daily Calorie Goal">
-                <input id="set-bottle" type="number" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none" placeholder="Bottle Size (oz)">
+                <label class="text-[10px] font-bold text-slate-500 uppercase ml-2">Daily Calorie Goal</label>
+                <input id="set-goal" type="number" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none border border-white/10" placeholder="2800">
+                <label class="text-[10px] font-bold text-slate-500 uppercase ml-2">Bottle Size (oz)</label>
+                <input id="set-bottle" type="number" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none border border-white/10" placeholder="32">
             </div>
-            <button onclick="saveSettings()" class="w-full bg-white text-black font-black py-4 rounded-2xl btn-active uppercase">Update</button>
-            <button onclick="resetDaily()" class="w-full text-red-500 font-bold py-2 uppercase text-xs">Reset Today</button>
-            <button onclick="toggleSettings()" class="w-full text-slate-500 font-bold py-2 uppercase text-xs">Close</button>
+            <button onclick="saveSettings()" class="w-full bg-white text-black font-black py-4 rounded-2xl btn-active uppercase">Update Settings</button>
+            <button onclick="resetDaily()" class="w-full text-red-500 font-bold py-2 uppercase text-[10px] tracking-widest">Reset Today</button>
+            <button onclick="toggleSettings()" class="w-full text-slate-500 font-bold py-2 uppercase text-[10px] tracking-widest">Close</button>
         </div>
     </div>
 
-    <div id="log-choice-modal" class="hidden fixed inset-0 z-[60] flex items-end p-6 bg-slate-950/80">
+    <div id="log-choice-modal" class="hidden fixed inset-0 z-[60] flex items-end p-6 bg-slate-950/80 backdrop-blur-sm">
         <div class="glass w-full rounded-[3rem] p-8 space-y-4">
             <button onclick="startCamera()" class="w-full bg-white text-black font-black py-5 rounded-2xl flex items-center justify-center gap-3 btn-active uppercase"><i data-lucide="camera"></i> AI Vision Scan</button>
             <button onclick="openManualEntry()" class="w-full bg-slate-800 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 btn-active uppercase"><i data-lucide="edit-3"></i> Manual Entry</button>
@@ -132,10 +140,10 @@
     <div id="manual-entry-modal" class="hidden fixed inset-0 z-[70] bg-slate-950 flex items-center justify-center p-6">
         <div class="glass w-full max-w-sm p-8 rounded-[3rem] space-y-6">
             <h2 class="text-2xl font-black text-emerald-400 uppercase italic text-center">New Log</h2>
-            <input id="food-name" type="text" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none" placeholder="Food Name">
+            <input id="food-name" type="text" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none border border-white/10" placeholder="Food Name">
             <div class="grid grid-cols-2 gap-4">
-                <input id="food-cal" type="number" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none" placeholder="Cals">
-                <input id="food-prot" type="number" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none" placeholder="Prot">
+                <input id="food-cal" type="number" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none border border-white/10" placeholder="Cals">
+                <input id="food-prot" type="number" class="w-full bg-white/5 p-4 rounded-2xl text-white outline-none border border-white/10" placeholder="Prot">
             </div>
             <button onclick="submitManualEntry()" class="w-full bg-emerald-500 text-slate-950 font-black py-5 rounded-3xl btn-active uppercase italic">Save Log</button>
             <button onclick="closeModals()" class="w-full text-slate-500 font-bold py-2 uppercase text-xs text-center">Cancel</button>
@@ -164,10 +172,11 @@
         protein: parseInt(localStorage.getItem('protein')) || 0,
         water: parseInt(localStorage.getItem('water')) || 0,
         goal: parseInt(localStorage.getItem('goal')) || 2800,
-        bottleSize: parseInt(localStorage.getItem('bottleSize')) || 32
+        bottleSize: parseInt(localStorage.getItem('bottleSize')) || 32,
+        currentWeight: localStorage.getItem('last_weight') || "--"
     };
 
-    // --- ADAFRUIT FUNCTIONS ---
+    // --- CLOUD ENGINE ---
     async function sendToAdafruit(feed, val) {
         const u = localStorage.getItem('adafruit_user');
         const k = localStorage.getItem('adafruit_key');
@@ -178,12 +187,14 @@
                 headers: { 'X-AIO-Key': k, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ value: val })
             });
+            console.log(`Cloud Updated: ${feed} -> ${val}`);
         } catch(e) { console.error(e); }
     }
 
     async function fetchFromAdafruit(feed) {
         const u = localStorage.getItem('adafruit_user');
         const k = localStorage.getItem('adafruit_key');
+        if(!u || !k) return 0;
         try {
             const res = await fetch(`https://io.adafruit.com/api/v2/${u}/feeds/${feed}/data/last`, { headers: {'X-AIO-Key': k}});
             const d = await res.json();
@@ -205,9 +216,11 @@
         document.getElementById('water-count').innerText = state.water;
         document.getElementById('goal-display').innerText = `/ ${state.goal} KCAL`;
         document.getElementById('bottle-size-label').innerText = `${state.bottleSize}oz bottles`;
+        
         const ring = document.getElementById('calorie-ring');
         const pct = Math.min((state.calories / state.goal) * 100, 100);
         ring.style.strokeDashoffset = 565 - (565 * (pct / 100));
+
         localStorage.setItem('calories', state.calories);
         localStorage.setItem('protein', state.protein);
         localStorage.setItem('water', state.water);
@@ -227,18 +240,28 @@
     function openLogChoice() { document.getElementById('log-choice-modal').classList.remove('hidden'); }
     function openManualEntry() { closeModals(); document.getElementById('manual-entry-modal').classList.remove('hidden'); }
 
-    // --- ACTION LOGIC ---
+    // --- ACTIONS ---
+    function logWeight() {
+        const w = prompt("Enter current body weight (lbs):", state.currentWeight !== "--" ? state.currentWeight : "");
+        if (w !== null && w !== "") {
+            state.currentWeight = w;
+            localStorage.setItem('last_weight', w);
+            sendToAdafruit('weight', w);
+            alert(`Weight logged: ${w} lbs`);
+        }
+    }
+
     function confirmWater() {
         if(confirm(`Log 1 bottle?`)) {
             state.water++; updateUI();
             sendToAdafruit('water', state.water);
-            sendToAdafruit('food-log', `Drank Water (${state.bottleSize}oz)`);
+            sendToAdafruit('food-log', `Drank ${state.bottleSize}oz Water`);
         }
     }
 
     function manualLog(type) {
         const cal = prompt("Calories:", type === 'shake' ? "1000" : "");
-        const prt = prompt("Protein:", type === 'shake' ? "50" : "");
+        const prt = prompt("Protein (g):", type === 'shake' ? "50" : "");
         if(cal) {
             state.calories += parseInt(cal); state.protein += parseInt(prt || 0);
             updateUI();
@@ -260,6 +283,9 @@
             sendToAdafruit('food-log', n);
         }
         closeModals();
+        document.getElementById('food-name').value = '';
+        document.getElementById('food-cal').value = '';
+        document.getElementById('food-prot').value = '';
     }
 
     async function analyzeImage(img) {
@@ -280,10 +306,9 @@
                 sendToAdafruit('protein', state.protein);
                 sendToAdafruit('food-log', r.food);
             }
-        } catch(e) { alert("AI Error"); }
+        } catch(e) { alert("AI Vision Error"); }
     }
 
-    // --- STARTUP ---
     function saveOnboarding() {
         localStorage.setItem('adafruit_user', document.getElementById('setup-user').value.trim());
         localStorage.setItem('adafruit_key', document.getElementById('setup-key').value.trim());
@@ -299,7 +324,7 @@
     }
 
     function resetDaily() {
-        if(confirm("Reset all?")) {
+        if(confirm("Reset today's totals?")) {
             state.calories = 0; state.protein = 0; state.water = 0;
             updateUI();
             sendToAdafruit('calories', 0); sendToAdafruit('protein', 0); sendToAdafruit('water', 0);
