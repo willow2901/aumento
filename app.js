@@ -250,7 +250,7 @@ function submitManualEntry() {
         sendToAdafruit('calories', state.calories);
         sendToAdafruit('protein', state.protein);
         //sendToAdafruit('food-log', n);
-		sendToAdafruit('food-log', `${n} | ${c} | ${p || 0}`);
+		sendToAdafruit('food-log', `${n} | ${c}kCal | ${p || 0}g`);
     }
     closeModals();
 }
@@ -272,7 +272,7 @@ async function analyzeImage(img) {
             sendToAdafruit('calories', state.calories);
             sendToAdafruit('protein', state.protein);
             //sendToAdafruit('food-log', r.food);
-			sendToAdafruit('food-log', `${r.food} | ${r.calories} | ${r.protein}`);
+			sendToAdafruit('food-log', `${r.food} | ${r.calories}kCal | ${r.protein}g`);
         }
     } catch(e) { alert("AI Vision Error"); }
 }
