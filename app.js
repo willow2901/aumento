@@ -160,10 +160,9 @@ async function loadHistory() {
 								<div class="flex justify-between items-center bg-white/[0.02] p-3 rounded-xl">
 								<span class="text-xs font-medium text-slate-300">${f}</span>
 								<i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-500/50"></i>
-								</div>`)
-							`;
+								</div>
+								`;
 						}).join('')}
-
 
                     </div>
                 </div>
