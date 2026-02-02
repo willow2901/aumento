@@ -146,9 +146,7 @@ async function loadHistory() {
                         <div class="bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20"><span class="text-[10px] font-bold text-orange-400 uppercase">${day.prot}g Protein</span></div>
                         <div class="bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20"><span class="text-[10px] font-bold text-blue-400 uppercase">${day.water} Bottles</span></div>
                     </div>
-                    <div class="space-y-2 mt-4">
-                        //${day.food.map(f => `<div class="flex justify-between items-center bg-white/[0.02] p-3 rounded-xl"><span class="text-xs font-medium text-slate-300">${f}</span><i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-500/50"></i></div>`).join('')}
-						
+                    <div class="space-y-2 mt-4">						
 						${day.food.map(f => {
 							// Split the string by the pipe |
 							const parts = f.split(' | ');
@@ -325,3 +323,4 @@ function captureImage() {
     stopCamera();
     analyzeImage(can.toDataURL('image/jpeg', 0.8));
 }
+
