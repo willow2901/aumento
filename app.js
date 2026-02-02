@@ -245,7 +245,7 @@ async function analyzeImage(img) {
         });
         const d = await res.json();
         const r = JSON.parse(d.candidates[0].content.parts[0].text.replace(/```json|```/g, "").trim());
-        if(confirm(`Log ${r.food}?`)) {
+        if(confirm(`Log ${r.food}?\n\n🔥 ${r.calories} kcal\n💪 ${r.protein}g protein`)) {
             state.calories += r.calories; state.protein += r.protein;
             updateUI();
             sendToAdafruit('calories', state.calories);
