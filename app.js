@@ -157,18 +157,14 @@ async function loadHistory() {
 							const prot = parts[2] || "??";
 
 							return `
-								<div onclick="alert('${name}\\n\\nCalories: ${cals} kcal\\nProtein: ${prot}g')" 
-									 class="flex justify-between items-center bg-white/[0.02] p-3 rounded-xl active:bg-white/10 transition-colors cursor-pointer">
-									<span class="text-xs font-medium text-slate-300">${name}</span>
-									<div class="flex items-center gap-2">
-										<span class="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">Details</span>
-										<i data-lucide="chevron-right" class="w-3 h-3 text-slate-600"></i>
-									</div>
-								</div>
+								<div class="flex justify-between items-center bg-white/[0.02] p-3 rounded-xl">
+								<span class="text-xs font-medium text-slate-300">${f}</span>
+								<i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-500/50"></i>
+								</div>`)
 							`;
 						}).join('')}
-						
-						
+
+
                     </div>
                 </div>
             `;
@@ -241,7 +237,7 @@ function manualLog(type) {
         //sendToAdafruit('food-log', type === 'shake' ? "Mass Gainer Shake" : "Quick Log");
 		// We save it with pipes | so we can split it later
         const name = type === 'shake' ? "Mass Gainer Shake" : "Quick Log";
-        sendToAdafruit('food-log', `${name} | ${cal} | ${prt || 0}`);
+        sendToAdafruit('food-log', `${name} | ${cal}kCal | ${prt || 0}g`);
     }
 }
 
