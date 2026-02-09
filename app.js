@@ -305,6 +305,28 @@ function saveSettings() {
 
 window.addEventListener('load', () => {
     if(!localStorage.getItem('adafruit_user')) document.getElementById('onboarding-screen').classList.remove('hidden');
+	// --- DAILY RESET CHECK ---
+    const today = new Date().toLocaleDateString();
+    const lastSavedDate = localStorage.getItem('last_log_date');
+
+    if (lastSavedDate !== today) {
+        // It's a new day! Clear the daily totals in the state
+        state.calories = 0;
+        state.protein = 0;
+        state.water = 0;
+        
+        // Update localStorage so the UI doesn't pull old numbers
+        localStorage.setItem('calories', 0);
+        localStorage.setItem('protein', 0);
+        localStorage.setItem('water', 0);
+        
+        // Mark today as the new "last saved date"
+        localStorage.setItem('last_log_date', today);
+        
+        // Note: We don't necessarily need to tell Adafruit yet, 
+        // the first meal you log will overwrite the cloud with the new daily total.
+    }
+    // -------------------------
     updateUI();
 });
 
@@ -323,4 +345,5 @@ function captureImage() {
     stopCamera();
     analyzeImage(can.toDataURL('image/jpeg', 0.8));
 }
+
 
